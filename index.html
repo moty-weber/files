@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="yi" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מיין ביזנעס CRM - מוטי וועבער</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f7f6; --success: #27ae60; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; text-align: right; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 15px; margin-bottom: 20px; }
+        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        
+        /* Clients Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: right; }
+        th { background: #f8f9fa; color: var(--primary); }
+        tr:hover { background: #fcfcfc; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: white; text-decoration: none; display: inline-block; }
+        .btn-main { background: var(--accent); }
+        .btn-green { background: var(--success); }
+        .btn-back { background: #666; margin-bottom: 15px; }
+
+        /* File Manager View */
+        #fileView { display: none; }
+        .file-list { margin-top: 20px; }
+        .file-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f1f1; background: #fff; }
+        .file-item:hover { background: #f9f9f9; }
+        .icon { margin-left: 10px; font-size: 20px; }
+        
+        .loader { display: none; color: var(--accent); font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="mainView">
+        <div class="header">
+            <h1>📂 פיררונג פון בירגערשאפט פיילס</h1>
+            <button class="btn btn-green" onclick="createNewClient()">➕ עפן נייע קליענט טעקע</button>
+        </div>
+
+        <input type="text" class="search-bar" id="searchInput" onkeyup="filterTable()" placeholder="🔎 זוך א קליענט לויט נאמען אדער פייל נומער...">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>קליענט נאמען</th>
+                    <th>סטאטוס</th>
+                    <th>אקציעס</th>
+                </tr>
+            </thead>
+            <tbody id="clientTableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="fileView">
+        <button class="btn btn-back" onclick="showMainView()">⬅️ צוריק צו די ליסטע</button>
+        <h2 id="currentFolderName">קליענט פיילס</h2>
+        
+        <div style="background: #eef2f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <button class="btn btn-main" onclick="document.getElementById('fileInput').click()">⬆️ אפלאוד פייל</button>
+            <button class="btn btn-main" onclick="makeFolder()" style="background:#8e44ad">📁 נייע פאלדער</button>
+            <input type="file" id="fileInput" style="display:none" onchange="uploadFileToServer()">
+            <div id="uploadStatus" class="loader">ארבעט אויף דעם...</div>
+        </div>
+
+        <div id="fileList" class="file-list"></div>
+    </div>
+</div>
+
+<script>
+    // --- קאנפיגוראציע (טויש דעם טאקען דא!) ---
+    const TOKEN = 'לייג_דא_דיין_נייע_טאקען'; 
+    const USER = 'moty-weber';
+    const REPO = 'files';
+    const BASE_URL = `https://api.github.com/repos/${USER}/${REPO}/contents/Clients`;
+
+    let currentPath = "";
+
+    // לאדנט די קליענטן פון GitHub
+    async function loadClients() {
+        try {
+            const res = await fetch(BASE_URL, { headers: { 'Authorization': `token ${TOKEN}` } });
+            const data = await res.json();
+            const body = document.getElementById('clientTableBody');
+            body.innerHTML = "";
+
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    if (item.type === 'dir') {
+                        body.innerHTML += `
+                            <tr>
+                                <td><strong>${item.name}</strong></td>
+                                <td><span style="color:#d35400; font-weight:bold;">אין ארבעט</span></td>
+                                <td>
+                                    <button class="btn btn-main" onclick="openFolder('${item.path}', '${item.name}')">📁 עפן פאלדער</button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // עפענען א פאלדער און ווייזן פיילס
+    async function openFolder(path, name) {
+        currentPath = path;
+        document.getElementById('mainView').style.display = 'none';
+        document.getElementById('fileView').style.display = 'block';
+        document.getElementById('currentFolderName').innerText = "קליענט: " + name;
+        renderFiles(path);
+    }
+
+    async function renderFiles(path) {
+        const list = document.getElementById('fileList');
+        list.innerHTML = "לאדנט פיילס...";
+        
+        try {
+            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `token ${TOKEN}` }
+            });
+            const data = await res.json();
+            list.innerHTML = "";
+
+            data.forEach(file => {
+                if (file.name === ".keep") return;
+                const isDir = file.type === 'dir';
+                list.innerHTML += `
+                    <div class="file-item">
+                        <span class="icon">${isDir ? '📁' : '📄'}</span>
+                        <a href="${isDir ? '#' : file.html_url}" target="${isDir ? '' : '_blank'}" 
+                           onclick="${isDir ? `openFolder('${file.path}', '${file.name}')` : ''}"
+                           style="text-decoration:none; color: #333; flex-grow:1;">
+                           ${file.name}
+                        </a>
+                    </div>`;
+            });
+        } catch (e) { list.innerHTML = "דער פאלדער איז ליידיג."; }
+    }
+
+    // אפלאוד פייל פונקציע
+    async function uploadFileToServer() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) return;
+        
+        const file = fileInput.files[0];
+        const status = document.getElementById('uploadStatus');
+        status.style.display = "block";
+
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const content = reader.result.split(',')[1];
+            const finalPath = `${currentPath}/${file.name}`;
+
+            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${finalPath}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `Upload ${file.name}`, content: content })
+            });
+
+            status.style.display = "none";
+            if(res.ok) { alert("פייל אפלאודעד!"); renderFiles(currentPath); }
+            else { alert("ערראר ביים אפלאודן."); }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // נייע קליענט
+    async function createNewClient() {
+        const name = prompt("נאמען פונעם נייעם קליענט:");
+        if (!name) return;
+        const path = `Clients/${name}/.keep`;
+        await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `token ${TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `New Client: ${name}`, content: "YmFzZTY0" })
+        });
+        loadClients();
+    }
+
+    // נייע סוב-פאלדער
+    async function makeFolder() {
+        const name = prompt("נאמען פונעם פאלדער:");
+        if (!name) return;
+        const path = `${currentPath}/${name}/.keep`;
+        await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${
