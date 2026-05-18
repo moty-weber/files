@@ -5,54 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מיין ביזנעס CRM - מוטי וועבער</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --accent: #3498db;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --light: #ecf0f1;
-            --white: #ffffff;
-        }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
-        .dashboard { width: 95%; max-width: 1200px; background: var(--white); margin-top: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* Header */
-        .header { background: var(--primary); color: white; padding: 25px 40px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
-        
-        /* Main Content */
-        .content { padding: 30px; flex-grow: 1; }
-        
-        /* Controls */
-        .controls { display: flex; gap: 15px; margin-bottom: 25px; align-items: center; }
-        .search-input { flex-grow: 1; padding: 12px 20px; border: 2px solid #eee; border-radius: 10px; outline: none; transition: 0.3s; font-size: 16px; }
-        .search-input:focus { border-color: var(--accent); }
-        
-        /* Buttons */
-        .btn { padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: 0.3s; display: flex; align-items: center; gap: 8px; font-size: 15px; text-decoration: none; }
-        .btn-add { background: var(--success); color: white; }
-        .btn-add:hover { background: #219150; transform: translateY(-2px); }
-        .btn-open { background: var(--accent); color: white; padding: 8px 15px; font-size: 14px; }
-        .btn-open:hover { background: #2980b9; }
-
-        /* Table Design */
-        table { width: 100%; border-collapse: collapse; border-radius: 10px; overflow: hidden; }
-        thead { background: var(--light); color: var(--secondary); }
-        th { padding: 15px; text-align: right; font-weight: 600; text-transform: uppercase; font-size: 13px; }
-        td { padding: 18px 15px; border-bottom: 1px solid #f1f1f1; color: #444; }
-        tr:hover { background-color: #f9fbff; }
-        .status-badge { background: #e8f5e9; color: #2e7d32; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-
-        /* File View Styles */
-        #fileView { display: none; padding: 20px; }
-        .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; margin-top: 20px; }
-        .file-card { background: #f8f9fa; border: 1px solid #eee; border-radius: 12px; padding: 20px; text-align: center; transition: 0.3s; cursor: pointer; }
-        .file-card:hover { border-color: var(--accent); background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .file-icon { font-size: 40px; margin-bottom: 10px; display: block; }
-        .file-name { font-size: 14px; color: var(--primary); font-weight: 500; word-break: break-all; }
-        
-        .loader { text-align: center; padding: 40px; display: none; font-weight: bold; color: var(--accent); }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --light: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--light); margin: 0; padding: 20px; }
+        .dashboard { max-width: 1100px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: var(--primary); color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .content { padding: 30px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; background: var(--accent); text-decoration: none; }
+        .btn-green { background: var(--success); }
+        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: right; }
+        .loader { display: none; color: var(--accent); font-weight: bold; padding: 10px; }
+        #fileView { display: none; }
     </style>
 </head>
 <body>
@@ -60,147 +24,117 @@
 <div class="dashboard">
     <div id="mainView">
         <div class="header">
-            <h1>📂 פיררונג סיסטעם - מוטי וועבער</h1>
-            <button class="btn btn-add" onclick="createNewClient()">➕ עפן נייע קליענט טעקע</button>
-        </div>
-        
-        <div class="content">
-            <div class="controls">
-                <input type="text" class="search-input" id="searchInput" onkeyup="filterTable()" placeholder="זוך קליענט לויט נאמען אדער נומער...">
+            <h1>📂 CRM סיסטעם - מוטי וועבער</h1>
+            <div>
+                <button class="btn btn-green" onclick="createNewClient()">➕ נייע קליענט</button>
+                <button class="btn" style="background:#e67e22" onclick="resetToken()">🔑 טויש טאקען</button>
             </div>
-
-            <div id="mainLoader" class="loader">לאדנט קליענטן...</div>
-
+        </div>
+        <div class="content">
+            <input type="text" class="search-bar" id="searchInput" onkeyup="filterTable()" placeholder="זוך קליענט...">
+            <div id="mainLoader" class="loader">לאדנט דאטא...</div>
             <table>
-                <thead>
-                    <tr>
-                        <th>קליענט נאמען</th>
-                        <th>סטאטוס</th>
-                        <th>אקציעס</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>קליענט נאמען</th><th>אקציעס</th></tr></thead>
                 <tbody id="clientTableBody"></tbody>
             </table>
         </div>
     </div>
 
     <div id="fileView">
-        <div class="header" style="background: var(--secondary);">
+        <div class="header" style="background:#34495e">
             <h1 id="currentFolderName">קליענט פיילס</h1>
-            <button class="btn" style="background: rgba(255,255,255,0.2);" onclick="location.reload()">⬅️ צוריק</button>
+            <button class="btn" onclick="location.reload()">⬅️ צוריק</button>
         </div>
         <div class="content">
-            <div class="controls">
-                <button class="btn btn-add" onclick="document.getElementById('fileInput').click()">⬆️ אפלאוד דאקומענט</button>
-                <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
-            </div>
-            <div id="fileLoader" class="loader">ארבעט אויף די פיילס...</div>
-            <div id="fileList" class="file-grid"></div>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">⬆️ אפלאוד פייל</button>
+            <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
+            <div id="fileList" style="margin-top:20px"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // ********* דא לייג אריין דיין טאקען *********
-    const TOKEN = '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'; 
     const USER = 'moty-weber';
     const REPO = 'files';
-    const AUTH = `Bearer ${TOKEN.trim()}`;
+    
+    // נעמט דעם טאקען פונעם זכרון (Local Storage)
+    let TOKEN = localStorage.getItem('github_crm_token');
 
-    // לאדנט די ליסטע
+    async function checkAuth() {
+        if (!TOKEN) {
+            TOKEN = prompt("ביטע פעיסט אריין דיין GitHub Token (נאר איין מאל):");
+            if (TOKEN) {
+                localStorage.setItem('github_crm_token', TOKEN.trim());
+                location.reload();
+            }
+        } else {
+            loadClients();
+        }
+    }
+
     async function loadClients() {
-        showLoader('mainLoader', true);
+        const loader = document.getElementById('mainLoader');
+        loader.style.display = "block";
         try {
             const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/Clients`, {
-                headers: { 'Authorization': AUTH }
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
+            if (res.status === 401) {
+                alert("דער טאקען איז נישט גוט. ביטע לייג אריין א פרישן.");
+                resetToken();
+                return;
+            }
             const data = await res.json();
             const body = document.getElementById('clientTableBody');
             body.innerHTML = "";
-            
             if (Array.isArray(data)) {
                 data.forEach(item => {
                     if (item.type === 'dir') {
-                        body.innerHTML += `
-                            <tr>
-                                <td><strong>${item.name}</strong></td>
-                                <td><span class="status-badge">ACTIVE</span></td>
-                                <td><button class="btn btn-open" onclick="openFolder('${item.path}', '${item.name}')">📁 עפן פאלדער</button></td>
-                            </tr>`;
+                        body.innerHTML += `<tr><td><strong>${item.name}</strong></td><td><button class="btn" onclick="openFolder('${item.path}', '${item.name}')">📁 עפן פיילס</button></td></tr>`;
                     }
                 });
             }
         } catch (e) { console.error(e); }
-        showLoader('mainLoader', false);
+        loader.style.display = "none";
     }
 
-    // עפענען פאלדער
+    function resetToken() {
+        localStorage.removeItem('github_crm_token');
+        location.reload();
+    }
+
+    // פונקציעס פאר פאלדערס און אפלאודס
     let currentPath = "";
     async function openFolder(path, name) {
         currentPath = path;
         document.getElementById('mainView').style.display = 'none';
         document.getElementById('fileView').style.display = 'block';
         document.getElementById('currentFolderName').innerText = name;
-        loadFiles(path);
-    }
-
-    async function loadFiles(path) {
-        showLoader('fileLoader', true);
         const list = document.getElementById('fileList');
+        list.innerHTML = "לאדנט...";
+        const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
+            headers: { 'Authorization': `Bearer ${TOKEN}` }
+        });
+        const data = await res.json();
         list.innerHTML = "";
-        try {
-            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
-                headers: { 'Authorization': AUTH }
-            });
-            const data = await res.json();
-            data.forEach(f => {
-                if (f.name === ".keep") return;
-                const isImg = f.name.match(/\.(jpg|jpeg|png|gif)$/i);
-                list.innerHTML += `
-                    <div class="file-card" onclick="window.open('${f.html_url}', '_blank')">
-                        <span class="file-icon">${isImg ? '🖼️' : '📄'}</span>
-                        <span class="file-name">${f.name}</span>
-                    </div>`;
-            });
-        } catch (e) { list.innerHTML = "קיין פיילס דא."; }
-        showLoader('fileLoader', false);
+        data.forEach(f => {
+            if(f.name !== ".keep") {
+                list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee;">📄 <a href="${f.html_url}" target="_blank">${f.name}</a></div>`;
+            }
+        });
     }
 
-    // באשאפן נייע קליענט
     async function createNewClient() {
         const name = prompt("נאמען פונעם נייעם קליענט:");
         if (!name) return;
-        showLoader('mainLoader', true);
         const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/Clients/${name}/.keep`, {
             method: 'PUT',
-            headers: { 'Authorization': AUTH, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `New client: ${name}`, content: "YmFzZTY0" })
+            headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `Add client ${name}`, content: "YmFzZTY0" })
         });
-        if(res.ok) { alert("געעפנט!"); loadClients(); } 
-        else { alert("ערראר. מאך זיכער דיין טאקען איז גוט."); }
-        showLoader('mainLoader', false);
+        if(res.ok) { alert("קליענט געעפנט!"); loadClients(); }
+        else { alert("עראר ביים באשאפן קליענט."); }
     }
-
-    // אפלאוד פייל
-    async function uploadFile() {
-        const fileInput = document.getElementById('fileInput');
-        const file = fileInput.files[0];
-        if(!file) return;
-        showLoader('fileLoader', true);
-        const reader = new FileReader();
-        reader.onload = async function() {
-            const content = reader.result.split(',')[1];
-            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${currentPath}/${file.name}`, {
-                method: 'PUT',
-                headers: { 'Authorization': AUTH, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `Upload: ${file.name}`, content: content })
-            });
-            if(res.ok) { alert("דאקומענט אפלאודעד!"); loadFiles(currentPath); }
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function showLoader(id, show) { document.getElementById(id).style.display = show ? "block" : "none"; }
 
     function filterTable() {
         let val = document.getElementById('searchInput').value.toLowerCase();
@@ -208,8 +142,7 @@
         rows.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none");
     }
 
-    window.onload = loadClients;
+    window.onload = checkAuth;
 </script>
-
 </body>
 </html>
