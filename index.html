@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מיין ביזנעס CRM - מוטי וועבער</title>
+    <title>Business CRM Pro - מוטי וועבער</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --light: #f4f7f6; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--light); margin: 0; padding: 20px; }
-        .dashboard { max-width: 1100px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; text-align: right; }
+        .dashboard { max-width: 1200px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .header { background: var(--primary); color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
         .content { padding: 30px; }
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; background: var(--accent); text-decoration: none; }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; background: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
         .btn-green { background: var(--success); }
-        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; }
+        .btn-red { background: var(--danger); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: right; }
-        .loader { display: none; color: var(--accent); font-weight: bold; padding: 10px; }
-        #fileView { display: none; }
+        th { background: #f8f9fa; color: var(--primary); }
+        .status-tag { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .tag-active { background: #e8f5e9; color: #2e7d32; }
+        .tag-done { background: #eceff1; color: #455a64; text-decoration: line-through; }
+        .tag-paid { background: #e3f2fd; color: #1565c0; }
+        .tag-unpaid { background: #fff3e0; color: #ef6c00; }
+        #fileView, #loader { display: none; }
+        .info-card { background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 20px; line-height: 1.6; }
+        .file-item { padding: 10px; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
@@ -31,10 +38,17 @@
             </div>
         </div>
         <div class="content">
-            <input type="text" class="search-bar" id="searchInput" onkeyup="filterTable()" placeholder="זוך קליענט...">
-            <div id="mainLoader" class="loader">לאדנט דאטא...</div>
+            <div id="mainLoader" style="text-align:center; color: var(--accent);">לאדנט דאטא...</div>
             <table>
-                <thead><tr><th>קליענט נאמען</th><th>אקציעס</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>קליענט</th>
+                        <th>אימעיל</th>
+                        <th>סטאטוס</th>
+                        <th>צאלונג</th>
+                        <th>אקציעס</th>
+                    </tr>
+                </thead>
                 <tbody id="clientTableBody"></tbody>
             </table>
         </div>
@@ -46,9 +60,14 @@
             <button class="btn" onclick="location.reload()">⬅️ צוריק</button>
         </div>
         <div class="content">
-            <button class="btn" onclick="document.getElementById('fileInput').click()">⬆️ אפלאוד פייל</button>
-            <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
-            <div id="fileList" style="margin-top:20px"></div>
+            <div id="clientDetails" class="info-card"></div>
+            
+            <div style="background: #eef2f3; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top:0">📁 דאקומענטן</h3>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">⬆️ אפלאוד נייע פייל</button>
+                <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
+            </div>
+            <div id="fileList"></div>
         </div>
     </div>
 </div>
@@ -56,92 +75,144 @@
 <script>
     const USER = 'moty-weber';
     const REPO = 'files';
-    
-    // נעמט דעם טאקען פונעם זכרון (Local Storage)
     let TOKEN = localStorage.getItem('github_crm_token');
 
     async function checkAuth() {
         if (!TOKEN) {
-            TOKEN = prompt("ביטע פעיסט אריין דיין GitHub Token (נאר איין מאל):");
-            if (TOKEN) {
-                localStorage.setItem('github_crm_token', TOKEN.trim());
-                location.reload();
-            }
-        } else {
-            loadClients();
-        }
+            let input = prompt("ביטע פעיסט אריין דיין GitHub Token:");
+            if (input) { localStorage.setItem('github_crm_token', input.trim()); TOKEN = input.trim(); loadClients(); }
+        } else { loadClients(); }
     }
 
     async function loadClients() {
-        const loader = document.getElementById('mainLoader');
-        loader.style.display = "block";
+        document.getElementById('mainLoader').style.display = "block";
         try {
             const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/Clients`, {
                 headers: { 'Authorization': `Bearer ${TOKEN}` }
             });
-            if (res.status === 401) {
-                alert("דער טאקען איז נישט גוט. ביטע לייג אריין א פרישן.");
-                resetToken();
-                return;
-            }
             const data = await res.json();
             const body = document.getElementById('clientTableBody');
             body.innerHTML = "";
+
             if (Array.isArray(data)) {
-                data.forEach(item => {
+                for (let item of data) {
                     if (item.type === 'dir') {
-                        body.innerHTML += `<tr><td><strong>${item.name}</strong></td><td><button class="btn" onclick="openFolder('${item.path}', '${item.name}')">📁 עפן פיילס</button></td></tr>`;
+                        const meta = await getClientMeta(item.name);
+                        body.innerHTML += `
+                            <tr>
+                                <td><strong>${item.name}</strong></td>
+                                <td>${meta.email || '---'}</td>
+                                <td><span class="status-tag ${meta.status === 'done' ? 'tag-done' : 'tag-active'}">${meta.status === 'done' ? 'געענדיגט' : 'אקטיוו'}</span></td>
+                                <td><span class="status-tag ${meta.paid ? 'tag-paid' : 'tag-unpaid'}">${meta.paid ? 'באצאלט' : 'נישט באצאלט'}</span></td>
+                                <td><button class="btn" onclick="openFolder('${item.path}', '${item.name}')">👁️ זעה מער</button></td>
+                            </tr>`;
                     }
-                });
+                }
             }
         } catch (e) { console.error(e); }
-        loader.style.display = "none";
+        document.getElementById('mainLoader').style.display = "none";
     }
 
-    function resetToken() {
-        localStorage.removeItem('github_crm_token');
-        location.reload();
+    async function getClientMeta(name) {
+        try {
+            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/Clients/${name}/info.json`, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            if (!res.ok) return {};
+            const data = await res.json();
+            return JSON.parse(atob(data.content));
+        } catch { return {}; }
     }
 
-    // פונקציעס פאר פאלדערס און אפלאודס
+    async function createNewClient() {
+        const name = prompt("נאמען פונעם קליענט:");
+        if (!name) return;
+        const email = prompt("אימעיל:");
+        const desc = prompt("דיסקריפּציע / נאטיץ:");
+        const paid = confirm("איז ער שוין באצאלט?");
+        
+        const info = { email, desc, paid, status: 'active', date: new Date().toLocaleDateString() };
+        
+        // באשאפן פאלדער מיט info.json
+        await saveFile(`Clients/${name}/info.json`, JSON.stringify(info, null, 2), "Create client info");
+        alert("קליענט באשאפן!");
+        loadClients();
+    }
+
+    async function saveFile(path, content, msg) {
+        const base64 = btoa(unescape(encodeURIComponent(content)));
+        let sha = "";
+        try {
+            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            if (res.ok) { const d = await res.json(); sha = d.sha; }
+        } catch {}
+
+        return fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg, content: base64, sha: sha || undefined })
+        });
+    }
+
     let currentPath = "";
     async function openFolder(path, name) {
         currentPath = path;
         document.getElementById('mainView').style.display = 'none';
         document.getElementById('fileView').style.display = 'block';
         document.getElementById('currentFolderName').innerText = name;
+        
+        const meta = await getClientMeta(name);
+        document.getElementById('clientDetails').innerHTML = `
+            <strong>📧 אימעיל:</strong> ${meta.email || 'נישטא'} | 
+            <strong>📅 דאטום:</strong> ${meta.date || '---'} <br>
+            <strong>📝 נאטיץ:</strong> ${meta.desc || 'ליידיג'} <br><br>
+            <button class="btn btn-red" onclick="toggleStatus('${name}', ${JSON.stringify(meta)})">
+                טויש צו ${meta.status === 'active' ? 'געענדיגט' : 'אקטיוו'}
+            </button>
+        `;
+        renderFiles(path);
+    }
+
+    async function toggleStatus(name, meta) {
+        meta.status = (meta.status === 'active' ? 'done' : 'active');
+        await saveFile(`Clients/${name}/info.json`, JSON.stringify(meta, null, 2), "Toggle status");
+        openFolder(`Clients/${name}`, name);
+    }
+
+    async function renderFiles(path) {
         const list = document.getElementById('fileList');
-        list.innerHTML = "לאדנט...";
+        list.innerHTML = "לאדנט פיילס...";
         const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`, {
             headers: { 'Authorization': `Bearer ${TOKEN}` }
         });
         const data = await res.json();
         list.innerHTML = "";
         data.forEach(f => {
-            if(f.name !== ".keep") {
-                list.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee;">📄 <a href="${f.html_url}" target="_blank">${f.name}</a></div>`;
-            }
+            if (f.name === "info.json" || f.name === ".keep") return;
+            list.innerHTML += `<div class="file-item"><span>📄 ${f.name}</span> <a href="${f.html_url}" target="_blank" class="btn" style="padding:4px 10px">עפן</a></div>`;
         });
     }
 
-    async function createNewClient() {
-        const name = prompt("נאמען פונעם נייעם קליענט:");
-        if (!name) return;
-        const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/Clients/${name}/.keep`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: `Add client ${name}`, content: "YmFzZTY0" })
-        });
-        if(res.ok) { alert("קליענט געעפנט!"); loadClients(); }
-        else { alert("עראר ביים באשאפן קליענט."); }
+    async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const content = reader.result.split(',')[1];
+            const res = await fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${currentPath}/${file.name}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `Upload: ${file.name}`, content: content })
+            });
+            if(res.ok) { alert("אפלאודעד!"); renderFiles(currentPath); }
+        };
+        reader.readAsDataURL(file);
     }
 
-    function filterTable() {
-        let val = document.getElementById('searchInput').value.toLowerCase();
-        let rows = document.querySelectorAll('#clientTableBody tr');
-        rows.forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? "" : "none");
-    }
-
+    function resetToken() { localStorage.removeItem('github_crm_token'); location.reload(); }
     window.onload = checkAuth;
 </script>
 </body>
